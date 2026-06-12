@@ -1,17 +1,37 @@
 from weather import get_weather
+from location import get_location
 
-city = input("Enter city name: ")
 
-data = get_weather(city)
+print("Detecting your location...")
 
-if data.get("cod") == 200:
+location = get_location()
+
+if location is None:
+    print("Could not detect location.")
+    exit()
+
+city = location["city"]
+country = location["country"]
+
+print(f"Location Found: {city}, {country}")
+
+weather = get_weather(city)
+
+if weather is None:
+    print("Unable to fetch weather data.")
+    exit()
+
+
+if weather.get("cod") == 200:
     print("\nWeather Details")
     print("----------------")
-    print("City:", data["name"])
-    print("Temperature:", data["main"]["temp"], "°C")
-    print("Feels Like:", data["main"]["feels_like"], "°C")
-    print("Humidity:", data["main"]["humidity"], "%")
-    print("Condition:", data["weather"][0]["description"])
-    print("Wind Speed:", data["wind"]["speed"], "m/s")
+
+    print("City:", weather["name"])
+    print("Temperature:", weather["main"]["temp"], "°C")
+    print("Feels Like:", weather["main"]["feels_like"], "°C")
+    print("Humidity:", weather["main"]["humidity"], "%")
+    print("Condition:", weather["weather"][0]["description"])
+    print("Wind Speed:", weather["wind"]["speed"], "m/s")
+
 else:
-    print("Error:", data.get("message"))
+    print("Error:", weather.get("message"))
