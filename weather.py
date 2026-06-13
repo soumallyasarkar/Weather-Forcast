@@ -42,3 +42,21 @@ def get_forecast(city):
 
     except requests.exceptions.RequestException:
         return None
+    
+
+
+def get_aqi(lat, lon):
+    try:
+        url = (
+            "https://api.openweathermap.org/data/2.5/air_pollution"
+            f"?lat={lat}"
+            f"&lon={lon}"
+            f"&appid={API_KEY}"
+        )
+
+        response = requests.get(url, timeout=5)
+
+        return response.json()
+
+    except requests.exceptions.RequestException:
+        return None
