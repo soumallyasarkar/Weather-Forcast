@@ -24,3 +24,21 @@ def get_weather(city):
 
     except requests.exceptions.RequestException:
         return None
+    
+
+
+def get_forecast(city):
+    try:
+        url = (
+            "https://api.openweathermap.org/data/2.5/forecast"
+            f"?q={city}"
+            f"&appid={API_KEY}"
+            "&units=metric"
+        )
+
+        response = requests.get(url, timeout=5)
+
+        return response.json()
+
+    except requests.exceptions.RequestException:
+        return None

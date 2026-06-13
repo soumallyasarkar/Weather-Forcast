@@ -1,5 +1,9 @@
 import customtkinter as ctk
-from weather import get_weather
+import requests
+from PIL import Image
+from io import BytesIO
+from datetime import datetime
+from weather import get_weather,get_forecast
 from location import get_location
 
 
@@ -9,26 +13,63 @@ from location import get_location
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-# Weather Emojis
-ICONS = {
-    "Clear": "☀️",
-    "Clouds": "☁️",
-    "Rain": "🌧️",
-    "Drizzle": "🌦️",
-    "Thunderstorm": "⛈️",
-    "Snow": "❄️",
-    "Mist": "🌫️",
-    "Fog": "🌫️",
-}
-
 # -----------------------------
 # Create Main Window
 # -----------------------------
 app = ctk.CTk()
 app.title("Weather Forecast")
-app.geometry("500x650")
+app.geometry("720x1000")
 app.resizable(True, True)
 
+
+
+
+# -------------------------------
+# Function to Update Weather Icon
+# -------------------------------
+def update_weather_icon(icon_code):
+    try:
+        icon_url = (
+            f"https://openweathermap.org/img/wn/"
+            f"{icon_code}@4x.png"
+        )
+
+        response = requests.get(icon_url, timeout=5)
+
+        image = Image.open(BytesIO(response.content))
+
+        weather_icon = ctk.CTkImage(
+            light_image=image,
+            dark_image=image,
+            size=(100, 100)
+        )
+
+        icon_label.configure(
+            image=weather_icon,
+            text=""
+        )
+
+        icon_label.image = weather_icon
+
+    except Exception:
+        icon_label.configure(
+            text="🌍",
+            image=None
+        )
+
+
+
+def reset_forecast():
+    for widget in forecast_cards.winfo_children():
+        widget.destroy()
+
+    empty_label = ctk.CTkLabel(
+        forecast_cards,
+        text="No forecast available",
+        font=("Arial", 14)
+    )
+
+    empty_label.pack(pady=10)
 
 # -----------------------------
 # Function to Load Weather Data
@@ -52,6 +93,7 @@ def load_weather(city=None):
             temp_label.configure(text="--°C")
             condition_label.configure(text="Could not detect location")
             reset_details()
+            reset_forecast()
             return  
 
         city = location["city"]
@@ -66,6 +108,7 @@ def load_weather(city=None):
             text="Unable to fetch weather data"
         )
         reset_details()
+        reset_forecast()
         return
 
     if weather.get("cod") != 200:
@@ -74,16 +117,16 @@ def load_weather(city=None):
             text=weather.get("message", "Invalid city")
         )
         reset_details()
+        reset_forecast()
         return
     
 
 
 
     # Weather Data
-    condition = weather["weather"][0]["main"]
-
-    icon_label.configure(text=ICONS.get(condition, "🌍"))
-
+    icon_code = weather["weather"][0]["icon"]
+    update_weather_icon(icon_code)
+    
     if country:
         city_label.configure(
             text=f"{weather['name']}, {country}"
@@ -112,6 +155,7 @@ def load_weather(city=None):
     wind_label.configure(
         text=f"Wind Speed: {weather['wind']['speed']} m/s"
     )
+    update_forecast(weather["name"])
 
 # -----------------------------
 # Search Function
@@ -140,6 +184,51 @@ def reset_details():
         text="Wind Speed: -- m/s"
     )
 
+# -----------------------------
+# Update Forecast Function
+# -----------------------------
+
+
+def update_forecast(city):
+    forecast = get_forecast(city)
+
+    if (
+        forecast is None
+        or forecast.get("cod") != "200"
+    ):
+        return
+
+    for widget in forecast_cards.winfo_children():
+        widget.destroy()
+
+    shown = 0
+
+    for item in forecast["list"]:
+        if "12:00:00" in item["dt_txt"]:
+
+            day = datetime.strptime(
+                item["dt_txt"],
+                "%Y-%m-%d %H:%M:%S"
+            ).strftime("%a")
+
+            temp = round(item["main"]["temp"])
+
+            label = ctk.CTkLabel(
+                forecast_cards,
+                text=f"{day}\n{temp}°C"
+            )
+
+            label.pack(
+                side="left",
+                expand=True,
+                padx=5,
+                pady=10
+            )
+
+            shown += 1
+
+            if shown == 5:
+                break
 
 # -----------------------------
 # Title
@@ -190,8 +279,7 @@ search_button.pack(
 # -----------------------------
 icon_label = ctk.CTkLabel(
     app,
-    text="🌍",
-    font=("Arial", 60)
+    text=""
 )
 
 icon_label.pack(pady=(20, 5))
@@ -272,6 +360,29 @@ wind_label = ctk.CTkLabel(
 )
 
 wind_label.pack(pady=8)
+
+# ------------------------------
+# Forecast Frame
+# ------------------------------
+forecast_frame = ctk.CTkFrame(app)
+forecast_frame.pack(
+    pady=10,
+    padx=20,
+    fill="x"
+)
+forecast_title = ctk.CTkLabel(
+    forecast_frame,
+    text="5-Day Forecast",
+    font=("Arial", 18, "bold")
+)
+
+forecast_title.pack(pady=5)
+forecast_cards = ctk.CTkFrame(
+    forecast_frame,
+    fg_color="transparent"
+)
+
+forecast_cards.pack(fill="x")
 
 
 # -----------------------------
