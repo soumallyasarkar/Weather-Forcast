@@ -1,3 +1,5 @@
+import os
+import sys
 import customtkinter as ctk
 import requests
 from PIL import Image
@@ -7,13 +9,20 @@ from weather import get_weather,get_forecast,get_aqi
 from location import get_location
 from constant import WEATHER_IMAGES,AQI_LABELS
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 IMAGE_CACHE = {}
 for condition, path in WEATHER_IMAGES.items():
     IMAGE_CACHE[condition] = ctk.CTkImage(
-        light_image=Image.open(path),
-        dark_image=Image.open(path),
+        light_image=Image.open(resource_path(path)),
+        dark_image=Image.open(resource_path(path)),
         size=(140, 140)
     )
 # -----------------------------
